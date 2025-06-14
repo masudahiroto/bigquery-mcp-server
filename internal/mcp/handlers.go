@@ -7,7 +7,7 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 
-	"github.com/example/bigquery-mcp-server/internal/bigquery"
+	"github.com/masudahiroto/bigquery-mcp-server/internal/bigquery"
 )
 
 type Server struct {

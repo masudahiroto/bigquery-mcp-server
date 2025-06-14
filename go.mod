@@ -1,4 +1,4 @@
-module github.com/example/bigquery-mcp-server
+module github.com/masudahiroto/bigquery-mcp-server
 
 go 1.23.8
 

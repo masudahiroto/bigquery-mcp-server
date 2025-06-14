@@ -4,8 +4,8 @@ import (
 	"context"
 	"log"
 
-	"github.com/example/bigquery-mcp-server/internal/bigquery"
-	"github.com/example/bigquery-mcp-server/internal/mcp"
+	"github.com/masudahiroto/bigquery-mcp-server/internal/bigquery"
+	"github.com/masudahiroto/bigquery-mcp-server/internal/mcp"
 )
 
 func main() {

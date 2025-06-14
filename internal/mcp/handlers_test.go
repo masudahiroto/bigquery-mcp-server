@@ -8,7 +8,7 @@ import (
 	"cloud.google.com/go/bigquery"
 	"github.com/mark3labs/mcp-go/mcp"
 
-	bq "github.com/example/bigquery-mcp-server/internal/bigquery"
+	bq "github.com/masudahiroto/bigquery-mcp-server/internal/bigquery"
 )
 
 func TestSchemaHandler(t *testing.T) {
