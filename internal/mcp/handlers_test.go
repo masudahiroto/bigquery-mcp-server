@@ -51,3 +51,21 @@ func TestQueryHandler(t *testing.T) {
 		t.Fatalf("unexpected rows: %#v", rows)
 	}
 }
+
+func TestTablesHandler(t *testing.T) {
+	mock := &bq.MockClient{TablesRes: []string{"t1"}}
+	srv := NewServer(func(ctx context.Context, project string) (bq.Client, error) { return mock, nil })
+
+	res, err := srv.tablesHandler(context.Background(), mcp.CallToolRequest{}, tablesArgs{Project: "p", Dataset: "d"})
+	if err != nil {
+		t.Fatalf("tablesHandler error: %v", err)
+	}
+	var tables []string
+	tc, _ := mcp.AsTextContent(res.Content[0])
+	if err := json.Unmarshal([]byte(tc.Text), &tables); err != nil {
+		t.Fatalf("invalid json: %v", err)
+	}
+	if len(tables) != 1 || tables[0] != "t1" {
+		t.Fatalf("unexpected tables: %#v", tables)
+	}
+}
