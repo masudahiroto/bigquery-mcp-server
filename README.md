@@ -29,3 +29,32 @@ Run unit tests:
 ```bash
 go test ./...
 ```
+
+## E2E Testing
+
+End-to-end tests require access to BigQuery and therefore are not executed in CI.
+To run them locally:
+
+1. Ensure Google Application Default Credentials are configured, e.g. run:
+
+   ```bash
+   gcloud auth application-default login
+   ```
+
+2. Set the following environment variables to point to a test dataset:
+
+   ```bash
+   export BQ_PROJECT=your-project-id
+   export BQ_DATASET=your_dataset
+   export BQ_TABLE=your_table
+   export BQ_SQL='SELECT 1 as id'
+   ```
+
+3. Execute the helper script:
+
+   ```bash
+   ./scripts/run_e2e.sh
+   ```
+
+The script runs `go test -tags=e2e ./e2e` which starts the server and exercises
+the `schema` and `query` tools against your BigQuery data.
