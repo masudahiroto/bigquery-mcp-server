@@ -21,6 +21,11 @@ type Server struct {
 	bqClientProvider func(ctx context.Context, project string) (bigquery.Client, error)
 }
 
+// MCPServer exposes the underlying MCP server.
+func (s *Server) MCPServer() *server.MCPServer {
+	return s.mcpServer
+}
+
 type schemaArgs struct {
 	Project string `json:"project"`
 	Dataset string `json:"dataset"`
