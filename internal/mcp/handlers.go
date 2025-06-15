@@ -13,6 +13,8 @@ import (
 	"github.com/masudahiroto/bigquery-mcp-server/internal/bigquery"
 )
 
+const defaultRowLimit = 100
+
 type Server struct {
 	mcpServer        *server.MCPServer
 	httpServer       *server.StreamableHTTPServer
@@ -68,14 +70,14 @@ func NewServer(provider func(ctx context.Context, project string) (bigquery.Clie
 
 	mcpSrv.AddTool(mcp.NewTool(
 		"query",
-		mcp.WithDescription("Execute BigQuery SQL"),
+		mcp.WithDescription("Execute BigQuery SQL (returns up to 100 rows)"),
 		mcp.WithString("project", mcp.Required()),
 		mcp.WithString("sql", mcp.Required()),
 	), mcp.NewTypedToolHandler(s.queryHandler))
 
 	mcpSrv.AddTool(mcp.NewTool(
 		"queryfile",
-		mcp.WithDescription("Execute BigQuery SQL from file"),
+		mcp.WithDescription("Execute BigQuery SQL from file (returns up to 100 rows)"),
 		mcp.WithString("project", mcp.Required()),
 		mcp.WithString("path", mcp.Required()),
 	), mcp.NewTypedToolHandler(s.queryFileHandler))
@@ -96,7 +98,7 @@ func NewServer(provider func(ctx context.Context, project string) (bigquery.Clie
 
 	mcpSrv.AddTool(mcp.NewTool(
 		"tables",
-		mcp.WithDescription("List BigQuery tables in a dataset"),
+		mcp.WithDescription("List BigQuery tables in a dataset (returns up to 100 entries)"),
 		mcp.WithString("project", mcp.Required()),
 		mcp.WithString("dataset", mcp.Required()),
 	), mcp.NewTypedToolHandler(s.tablesHandler))
@@ -142,6 +144,9 @@ func (s *Server) queryHandler(ctx context.Context, _ mcp.CallToolRequest, args q
 	if err != nil {
 		return nil, err
 	}
+	if len(rows) > defaultRowLimit {
+		rows = rows[:defaultRowLimit]
+	}
 	data, _ := json.Marshal(rows)
 	return mcp.NewToolResultText(string(data)), nil
 }
@@ -183,6 +188,9 @@ func (s *Server) tablesHandler(ctx context.Context, _ mcp.CallToolRequest, args 
 	tables, err := c.ListTables(ctx, args.Dataset)
 	if err != nil {
 		return nil, err
+	}
+	if len(tables) > defaultRowLimit {
+		tables = tables[:defaultRowLimit]
 	}
 	data, _ := json.Marshal(tables)
 	return mcp.NewToolResultText(string(data)), nil

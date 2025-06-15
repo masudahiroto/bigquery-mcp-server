@@ -3,11 +3,13 @@
 This repository provides a minimal Model Context Protocol (MCP) server written in Go. The server exposes tools backed by Google BigQuery:
 
 - `schema` – returns the schema of a BigQuery table
-- `query` – executes an SQL query and returns the result rows
-- `dryrun` – performs a BigQuery dry run to validate SQL and estimate costs
-- `queryfile` – executes SQL read from a file
+ - `query` – executes an SQL query and returns up to 100 result rows
+ - `dryrun` – performs a BigQuery dry run to validate SQL and estimate costs
+ - `queryfile` – executes SQL read from a file and returns up to 100 rows
 - `dryrunfile` – dry runs SQL read from a file
-- `tables` – lists tables in a BigQuery dataset
+- `tables` – lists tables in a BigQuery dataset (up to 100 entries)
+
+Query and table results are truncated to the first 100 rows to keep responses concise.
 
 ## Requirements
 
