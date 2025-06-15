@@ -27,6 +27,11 @@ type queryArgs struct {
 	SQL     string `json:"sql"`
 }
 
+type dryRunArgs struct {
+	Project string `json:"project"`
+	SQL     string `json:"sql"`
+}
+
 func NewServer(provider func(ctx context.Context, project string) (bigquery.Client, error)) *Server {
 	mcpSrv := server.NewMCPServer(
 		"bigquery-mcp-server",
@@ -49,6 +54,13 @@ func NewServer(provider func(ctx context.Context, project string) (bigquery.Clie
 		mcp.WithString("project", mcp.Required()),
 		mcp.WithString("sql", mcp.Required()),
 	), mcp.NewTypedToolHandler(s.queryHandler))
+
+	mcpSrv.AddTool(mcp.NewTool(
+		"dryrun",
+		mcp.WithDescription("Dry run BigQuery SQL"),
+		mcp.WithString("project", mcp.Required()),
+		mcp.WithString("sql", mcp.Required()),
+	), mcp.NewTypedToolHandler(s.dryRunHandler))
 
 	s.httpServer = server.NewStreamableHTTPServer(mcpSrv)
 	return s
@@ -81,5 +93,18 @@ func (s *Server) queryHandler(ctx context.Context, _ mcp.CallToolRequest, args q
 		return nil, err
 	}
 	data, _ := json.Marshal(rows)
+	return mcp.NewToolResultText(string(data)), nil
+}
+
+func (s *Server) dryRunHandler(ctx context.Context, _ mcp.CallToolRequest, args dryRunArgs) (*mcp.CallToolResult, error) {
+	c, err := s.bqClientProvider(ctx, args.Project)
+	if err != nil {
+		return nil, err
+	}
+	stats, err := c.DryRunQuery(ctx, args.SQL)
+	if err != nil {
+		return nil, err
+	}
+	data, _ := json.Marshal(stats)
 	return mcp.NewToolResultText(string(data)), nil
 }

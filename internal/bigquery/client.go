@@ -2,6 +2,7 @@ package bigquery
 
 import (
 	"context"
+	"errors"
 
 	"cloud.google.com/go/bigquery"
 	"google.golang.org/api/iterator"
@@ -10,6 +11,7 @@ import (
 type Client interface {
 	GetTableSchema(ctx context.Context, datasetID, tableID string) ([]*bigquery.FieldSchema, error)
 	RunQuery(ctx context.Context, sql string) ([]map[string]bigquery.Value, error)
+	DryRunQuery(ctx context.Context, sql string) (*bigquery.QueryStatistics, error)
 }
 
 type realClient struct {
@@ -53,4 +55,22 @@ func (r *realClient) RunQuery(ctx context.Context, sql string) ([]map[string]big
 		results = append(results, row)
 	}
 	return results, nil
+}
+
+func (r *realClient) DryRunQuery(ctx context.Context, sql string) (*bigquery.QueryStatistics, error) {
+	q := r.client.Query(sql)
+	q.DryRun = true
+	job, err := q.Run(ctx)
+	if err != nil {
+		return nil, err
+	}
+	status := job.LastStatus()
+	if status == nil || status.Statistics == nil {
+		return nil, errors.New("no job statistics")
+	}
+	qs, ok := status.Statistics.Details.(*bigquery.QueryStatistics)
+	if !ok {
+		return nil, errors.New("no query statistics")
+	}
+	return qs, nil
 }
