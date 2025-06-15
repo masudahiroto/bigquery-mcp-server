@@ -23,6 +23,10 @@ go run ./cmd/server
 
 The server listens on `:8080` by default. Use an MCP client to call the registered tools.
 
+### Limiting Query Cost
+
+Set the environment variable `MAX_BQ_QUERY_BYTES` to limit how many bytes a query may scan. The `query` tool performs a BigQuery dry run and refuses to execute if the estimated bytes processed exceed this value.
+
 ## Testing
 
 Run unit tests:

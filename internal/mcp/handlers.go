@@ -3,6 +3,9 @@ package mcp
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"os"
+	"strconv"
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
@@ -99,6 +102,17 @@ func (s *Server) queryHandler(ctx context.Context, _ mcp.CallToolRequest, args q
 	c, err := s.bqClientProvider(ctx, args.Project)
 	if err != nil {
 		return nil, err
+	}
+	if maxStr := os.Getenv("MAX_BQ_QUERY_BYTES"); maxStr != "" {
+		if maxBytes, err := strconv.ParseInt(maxStr, 10, 64); err == nil && maxBytes > 0 {
+			stats, err := c.DryRunQuery(ctx, args.SQL)
+			if err != nil {
+				return nil, err
+			}
+			if stats.TotalBytesProcessed > maxBytes {
+				return nil, fmt.Errorf("query would scan %d bytes (limit %d)", stats.TotalBytesProcessed, maxBytes)
+			}
+		}
 	}
 	rows, err := c.RunQuery(ctx, args.SQL)
 	if err != nil {

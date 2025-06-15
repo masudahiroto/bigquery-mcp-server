@@ -52,6 +52,30 @@ func TestQueryHandler(t *testing.T) {
 	}
 }
 
+func TestQueryHandlerMaxBytes(t *testing.T) {
+	mock := &bq.MockClient{QueryRes: []map[string]bigquery.Value{{"id": "1"}}, DryRunRes: &bigquery.QueryStatistics{TotalBytesProcessed: 500}}
+	srv := NewServer(func(ctx context.Context, project string) (bq.Client, error) { return mock, nil })
+
+	t.Setenv("MAX_BQ_QUERY_BYTES", "1000")
+	res, err := srv.queryHandler(context.Background(), mcp.CallToolRequest{}, queryArgs{Project: "p", SQL: "SELECT 1"})
+	if err != nil {
+		t.Fatalf("queryHandler error: %v", err)
+	}
+	tc, _ := mcp.AsTextContent(res.Content[0])
+	var rows []map[string]bigquery.Value
+	if err := json.Unmarshal([]byte(tc.Text), &rows); err != nil {
+		t.Fatalf("invalid json: %v", err)
+	}
+	if len(rows) != 1 || rows[0]["id"] != "1" {
+		t.Fatalf("unexpected rows: %#v", rows)
+	}
+
+	t.Setenv("MAX_BQ_QUERY_BYTES", "100")
+	if _, err := srv.queryHandler(context.Background(), mcp.CallToolRequest{}, queryArgs{Project: "p", SQL: "SELECT 1"}); err == nil {
+		t.Fatalf("expected error when limit exceeded")
+	}
+}
+
 func TestDryRunHandler(t *testing.T) {
 	mock := &bq.MockClient{DryRunRes: &bigquery.QueryStatistics{TotalBytesProcessed: 1234}}
 	srv := NewServer(func(ctx context.Context, project string) (bq.Client, error) { return mock, nil })
