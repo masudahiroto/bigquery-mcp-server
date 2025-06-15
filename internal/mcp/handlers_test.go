@@ -51,3 +51,21 @@ func TestQueryHandler(t *testing.T) {
 		t.Fatalf("unexpected rows: %#v", rows)
 	}
 }
+
+func TestDryRunHandler(t *testing.T) {
+	mock := &bq.MockClient{DryRunRes: &bigquery.QueryStatistics{TotalBytesProcessed: 1234}}
+	srv := NewServer(func(ctx context.Context, project string) (bq.Client, error) { return mock, nil })
+
+	res, err := srv.dryRunHandler(context.Background(), mcp.CallToolRequest{}, dryRunArgs{Project: "p", SQL: "SELECT 1"})
+	if err != nil {
+		t.Fatalf("dryRunHandler error: %v", err)
+	}
+	tc, _ := mcp.AsTextContent(res.Content[0])
+	var stats bigquery.QueryStatistics
+	if err := json.Unmarshal([]byte(tc.Text), &stats); err != nil {
+		t.Fatalf("invalid json: %v", err)
+	}
+	if stats.TotalBytesProcessed != 1234 {
+		t.Fatalf("unexpected stats: %#v", stats)
+	}
+}
