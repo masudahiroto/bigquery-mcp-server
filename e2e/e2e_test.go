@@ -6,12 +6,15 @@ import (
 	"context"
 	"encoding/json"
 	"os"
-	"os/exec"
 	"testing"
 	"time"
 
 	"github.com/mark3labs/mcp-go/client"
 	"github.com/mark3labs/mcp-go/mcp"
+	mcpserver "github.com/mark3labs/mcp-go/server"
+
+	"github.com/masudahiroto/bigquery-mcp-server/internal/bigquery"
+	internalmcp "github.com/masudahiroto/bigquery-mcp-server/internal/mcp"
 )
 
 func TestBigQueryServer(t *testing.T) {
@@ -27,18 +30,14 @@ func TestBigQueryServer(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, "go", "run", "./cmd/server")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Start(); err != nil {
-		t.Fatalf("start server: %v", err)
+	provider := func(ctx context.Context, project string) (bigquery.Client, error) {
+		return bigquery.NewClient(ctx, project)
 	}
-	defer cmd.Process.Kill()
+	srv := internalmcp.NewServer(provider)
+	ts := mcpserver.NewTestStreamableHTTPServer(srv.MCPServer())
+	defer ts.Close()
 
-	// Give server time to start
-	time.Sleep(2 * time.Second)
-
-	cli, err := client.NewStreamableHttpClient("http://localhost:8080/mcp")
+	cli, err := client.NewStreamableHttpClient(ts.URL + "/mcp")
 	if err != nil {
 		t.Fatalf("create client: %v", err)
 	}
