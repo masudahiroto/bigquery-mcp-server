@@ -58,7 +58,7 @@ func TestBigQueryServer(t *testing.T) {
 	if err != nil {
 		t.Fatalf("list tools: %v", err)
 	}
-	foundSchema, foundQuery := false, false
+	foundSchema, foundQuery, foundTables := false, false, false
 	for _, tl := range toolsRes.Tools {
 		if tl.Name == "schema" {
 			foundSchema = true
@@ -66,9 +66,12 @@ func TestBigQueryServer(t *testing.T) {
 		if tl.Name == "query" {
 			foundQuery = true
 		}
+		if tl.Name == "tables" {
+			foundTables = true
+		}
 	}
-	if !foundSchema || !foundQuery {
-		t.Fatalf("expected tools not found: schema=%v query=%v", foundSchema, foundQuery)
+	if !foundSchema || !foundQuery || !foundTables {
+		t.Fatalf("expected tools not found: schema=%v query=%v tables=%v", foundSchema, foundQuery, foundTables)
 	}
 
 	schemaReq := mcp.CallToolRequest{}
@@ -109,6 +112,26 @@ func TestBigQueryServer(t *testing.T) {
 		var v any
 		if err := json.Unmarshal([]byte(tc.Text), &v); err != nil {
 			t.Fatalf("query result invalid JSON: %v", err)
+		}
+	}
+
+	tablesReq := mcp.CallToolRequest{}
+	tablesReq.Params.Name = "tables"
+	tablesReq.Params.Arguments = map[string]any{
+		"project": project,
+		"dataset": dataset,
+	}
+	tablesRes, err := cli.CallTool(ctx, tablesReq)
+	if err != nil {
+		t.Fatalf("call tables: %v", err)
+	}
+	if len(tablesRes.Content) == 0 {
+		t.Fatal("tables result empty")
+	}
+	if tc, ok := mcp.AsTextContent(tablesRes.Content[0]); ok {
+		var v any
+		if err := json.Unmarshal([]byte(tc.Text), &v); err != nil {
+			t.Fatalf("tables result invalid JSON: %v", err)
 		}
 	}
 }
