@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"regexp"
 	"strconv"
 
 	"github.com/mark3labs/mcp-go/mcp"
@@ -19,6 +20,15 @@ type Server struct {
 	mcpServer        *server.MCPServer
 	httpServer       *server.StreamableHTTPServer
 	bqClientProvider func(ctx context.Context, project string) (bigquery.Client, error)
+	tableFilter      *regexp.Regexp
+}
+
+type Option func(*Server)
+
+func WithTableFilter(re *regexp.Regexp) Option {
+	return func(s *Server) {
+		s.tableFilter = re
+	}
 }
 
 // MCPServer exposes the underlying MCP server.
@@ -57,13 +67,16 @@ type tablesArgs struct {
 	Dataset string `json:"dataset"`
 }
 
-func NewServer(provider func(ctx context.Context, project string) (bigquery.Client, error)) *Server {
+func NewServer(provider func(ctx context.Context, project string) (bigquery.Client, error), opts ...Option) *Server {
 	mcpSrv := server.NewMCPServer(
 		"bigquery-mcp-server",
 		"1.0.0",
 		server.WithToolCapabilities(true),
 	)
 	s := &Server{mcpServer: mcpSrv, bqClientProvider: provider}
+	for _, opt := range opts {
+		opt(s)
+	}
 
 	mcpSrv.AddTool(mcp.NewTool(
 		"schema",
@@ -193,6 +206,15 @@ func (s *Server) tablesHandler(ctx context.Context, _ mcp.CallToolRequest, args 
 	tables, err := c.ListTables(ctx, args.Dataset)
 	if err != nil {
 		return nil, err
+	}
+	if s.tableFilter != nil {
+		filtered := tables[:0]
+		for _, t := range tables {
+			if s.tableFilter.MatchString(t) {
+				filtered = append(filtered, t)
+			}
+		}
+		tables = filtered
 	}
 	if len(tables) > defaultRowLimit {
 		tables = tables[:defaultRowLimit]

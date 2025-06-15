@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"os"
+	"regexp"
 	"strconv"
 	"testing"
 
@@ -209,5 +210,24 @@ func TestTablesHandlerRowLimit(t *testing.T) {
 	}
 	if len(tables) != 100 {
 		t.Fatalf("expected 100 tables, got %d", len(tables))
+	}
+}
+
+func TestTablesHandlerRegexFilter(t *testing.T) {
+	mock := &bq.MockClient{TablesRes: []string{"users", "orders", "logs"}}
+	re := regexp.MustCompile("^u.*")
+	srv := NewServer(func(ctx context.Context, project string) (bq.Client, error) { return mock, nil }, WithTableFilter(re))
+
+	res, err := srv.tablesHandler(context.Background(), mcp.CallToolRequest{}, tablesArgs{Project: "p", Dataset: "d"})
+	if err != nil {
+		t.Fatalf("tablesHandler error: %v", err)
+	}
+	tc, _ := mcp.AsTextContent(res.Content[0])
+	var tables []string
+	if err := json.Unmarshal([]byte(tc.Text), &tables); err != nil {
+		t.Fatalf("invalid json: %v", err)
+	}
+	if len(tables) != 1 || tables[0] != "users" {
+		t.Fatalf("unexpected tables: %#v", tables)
 	}
 }
