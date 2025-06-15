@@ -3,13 +3,17 @@
 package e2e
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"io"
+	"net/http/httptest"
 	"os"
 	"testing"
 	"time"
 
 	"github.com/mark3labs/mcp-go/client"
+	"github.com/mark3labs/mcp-go/client/transport"
 	"github.com/mark3labs/mcp-go/mcp"
 	mcpserver "github.com/mark3labs/mcp-go/server"
 
@@ -17,35 +21,8 @@ import (
 	internalmcp "github.com/masudahiroto/bigquery-mcp-server/internal/mcp"
 )
 
-func TestBigQueryServer(t *testing.T) {
-	project := os.Getenv("BQ_PROJECT")
-	dataset := os.Getenv("BQ_DATASET")
-	table := os.Getenv("BQ_TABLE")
-	sql := os.Getenv("BQ_SQL")
-
-	if project == "" || dataset == "" || table == "" || sql == "" {
-		t.Skip("BQ_PROJECT, BQ_DATASET, BQ_TABLE and BQ_SQL must be set")
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
-	defer cancel()
-
-	provider := func(ctx context.Context, project string) (bigquery.Client, error) {
-		return bigquery.NewClient(ctx, project)
-	}
-	srv := internalmcp.NewServer(provider)
-	ts := mcpserver.NewTestStreamableHTTPServer(srv.MCPServer())
-	defer ts.Close()
-
-	cli, err := client.NewStreamableHttpClient(ts.URL + "/mcp")
-	if err != nil {
-		t.Fatalf("create client: %v", err)
-	}
-	if err := cli.Start(ctx); err != nil {
-		t.Fatalf("start client: %v", err)
-	}
-	defer cli.Close()
-
+func runBigQueryScenario(t *testing.T, ctx context.Context, cli *client.Client,
+	project, dataset, table, sql string) {
 	initReq := mcp.InitializeRequest{}
 	initReq.Params.ProtocolVersion = mcp.LATEST_PROTOCOL_VERSION
 	initReq.Params.ClientInfo = mcp.Implementation{Name: "e2e-test", Version: "0.1"}
@@ -133,4 +110,73 @@ func TestBigQueryServer(t *testing.T) {
 			t.Fatalf("tables result invalid JSON: %v", err)
 		}
 	}
+}
+
+func TestBigQueryServer_TLS(t *testing.T) {
+	project := os.Getenv("BQ_PROJECT")
+	dataset := os.Getenv("BQ_DATASET")
+	table := os.Getenv("BQ_TABLE")
+	sql := os.Getenv("BQ_SQL")
+
+	if project == "" || dataset == "" || table == "" || sql == "" {
+		t.Skip("BQ_PROJECT, BQ_DATASET, BQ_TABLE and BQ_SQL must be set")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+
+	provider := func(ctx context.Context, project string) (bigquery.Client, error) {
+		return bigquery.NewClient(ctx, project)
+	}
+	srv := internalmcp.NewServer(provider)
+	httpSrv := mcpserver.NewStreamableHTTPServer(srv.MCPServer())
+	ts := httptest.NewTLSServer(httpSrv)
+	defer ts.Close()
+
+	cli, err := client.NewStreamableHttpClient(ts.URL+"/mcp", transport.WithHTTPBasicClient(ts.Client()))
+	if err != nil {
+		t.Fatalf("create client: %v", err)
+	}
+	if err := cli.Start(ctx); err != nil {
+		t.Fatalf("start client: %v", err)
+	}
+	defer cli.Close()
+	runBigQueryScenario(t, ctx, cli, project, dataset, table, sql)
+}
+
+func TestBigQueryServer_Stdio(t *testing.T) {
+	project := os.Getenv("BQ_PROJECT")
+	dataset := os.Getenv("BQ_DATASET")
+	table := os.Getenv("BQ_TABLE")
+	sql := os.Getenv("BQ_SQL")
+
+	if project == "" || dataset == "" || table == "" || sql == "" {
+		t.Skip("BQ_PROJECT, BQ_DATASET, BQ_TABLE and BQ_SQL must be set")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+
+	provider := func(ctx context.Context, project string) (bigquery.Client, error) {
+		return bigquery.NewClient(ctx, project)
+	}
+	srv := internalmcp.NewServer(provider)
+	stdioSrv := mcpserver.NewStdioServer(srv.MCPServer())
+
+	serverReader, clientWriter := io.Pipe()
+	clientReader, serverWriter := io.Pipe()
+
+	go func() {
+		stdioSrv.Listen(ctx, serverReader, serverWriter)
+	}()
+
+	var logBuf bytes.Buffer
+	trans := transport.NewIO(clientReader, clientWriter, io.NopCloser(&logBuf))
+	cli := client.NewClient(trans)
+	if err := cli.Start(ctx); err != nil {
+		t.Fatalf("start client: %v", err)
+	}
+	defer cli.Close()
+
+	runBigQueryScenario(t, ctx, cli, project, dataset, table, sql)
 }
