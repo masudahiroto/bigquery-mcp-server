@@ -16,13 +16,31 @@ Query and table results are truncated to the first 100 rows to keep responses co
 - Go 1.21 or later
 - Google Application Default Credentials for BigQuery access
 
+## Installation
+
+Install the pre-built server binary using `go install`:
+
+```bash
+go install github.com/masudahiroto/bigquery-mcp-server/cmd/bigquery-mcp-server@latest
+```
+
+The command places the `bigquery-mcp-server` executable in your Go bin directory
+(`$(go env GOBIN)` or `$(go env GOPATH)/bin`). Ensure this location is in your
+`PATH` so you can run `bigquery-mcp-server` from any terminal.
+
+You can also run the helper script which performs the same installation:
+
+```bash
+./scripts/install.sh
+```
+
 ## Getting Started
 
 Install dependencies and run the server:
 
 ```bash
 go mod tidy
-go run ./cmd/server
+go run ./cmd/bigquery-mcp-server
 ```
 
 The server listens on `:8080` by default. Use an MCP client to call the registered tools.

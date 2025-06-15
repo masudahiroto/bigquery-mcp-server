@@ -27,7 +27,7 @@ func TestBigQueryServer(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, "go", "run", "./cmd/server")
+	cmd := exec.CommandContext(ctx, "go", "run", "./cmd/bigquery-mcp-server")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Start(); err != nil {
