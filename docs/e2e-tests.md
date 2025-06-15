@@ -1,6 +1,6 @@
 # E2E Testing Strategy
 
-This project implements the Model Context Protocol (MCP) with two BigQuery backed tools.
+This project implements the Model Context Protocol (MCP) with several BigQuery backed tools.
 Typical MCP server tests verify:
 
 1. **Initialization** – the client can negotiate protocol version and obtain server capabilities.

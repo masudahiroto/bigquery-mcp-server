@@ -5,6 +5,8 @@ This repository provides a minimal Model Context Protocol (MCP) server written i
 - `schema` – returns the schema of a BigQuery table
 - `query` – executes an SQL query and returns the result rows
 - `dryrun` – performs a BigQuery dry run to validate SQL and estimate costs
+- `queryfile` – executes SQL read from a file
+- `dryrunfile` – dry runs SQL read from a file
 - `tables` – lists tables in a BigQuery dataset
 
 ## Requirements
