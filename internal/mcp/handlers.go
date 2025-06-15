@@ -35,6 +35,16 @@ type dryRunArgs struct {
 	SQL     string `json:"sql"`
 }
 
+type queryFileArgs struct {
+	Project string `json:"project"`
+	Path    string `json:"path"`
+}
+
+type dryRunFileArgs struct {
+	Project string `json:"project"`
+	Path    string `json:"path"`
+}
+
 type tablesArgs struct {
 	Project string `json:"project"`
 	Dataset string `json:"dataset"`
@@ -64,11 +74,25 @@ func NewServer(provider func(ctx context.Context, project string) (bigquery.Clie
 	), mcp.NewTypedToolHandler(s.queryHandler))
 
 	mcpSrv.AddTool(mcp.NewTool(
+		"queryfile",
+		mcp.WithDescription("Execute BigQuery SQL from file"),
+		mcp.WithString("project", mcp.Required()),
+		mcp.WithString("path", mcp.Required()),
+	), mcp.NewTypedToolHandler(s.queryFileHandler))
+
+	mcpSrv.AddTool(mcp.NewTool(
 		"dryrun",
 		mcp.WithDescription("Dry run BigQuery SQL"),
 		mcp.WithString("project", mcp.Required()),
 		mcp.WithString("sql", mcp.Required()),
 	), mcp.NewTypedToolHandler(s.dryRunHandler))
+
+	mcpSrv.AddTool(mcp.NewTool(
+		"dryrunfile",
+		mcp.WithDescription("Dry run BigQuery SQL from file"),
+		mcp.WithString("project", mcp.Required()),
+		mcp.WithString("path", mcp.Required()),
+	), mcp.NewTypedToolHandler(s.dryRunFileHandler))
 
 	mcpSrv.AddTool(mcp.NewTool(
 		"tables",
@@ -122,6 +146,14 @@ func (s *Server) queryHandler(ctx context.Context, _ mcp.CallToolRequest, args q
 	return mcp.NewToolResultText(string(data)), nil
 }
 
+func (s *Server) queryFileHandler(ctx context.Context, _ mcp.CallToolRequest, args queryFileArgs) (*mcp.CallToolResult, error) {
+	b, err := os.ReadFile(args.Path)
+	if err != nil {
+		return nil, err
+	}
+	return s.queryHandler(ctx, mcp.CallToolRequest{}, queryArgs{Project: args.Project, SQL: string(b)})
+}
+
 func (s *Server) dryRunHandler(ctx context.Context, _ mcp.CallToolRequest, args dryRunArgs) (*mcp.CallToolResult, error) {
 	c, err := s.bqClientProvider(ctx, args.Project)
 	if err != nil {
@@ -133,6 +165,14 @@ func (s *Server) dryRunHandler(ctx context.Context, _ mcp.CallToolRequest, args 
 	}
 	data, _ := json.Marshal(stats)
 	return mcp.NewToolResultText(string(data)), nil
+}
+
+func (s *Server) dryRunFileHandler(ctx context.Context, _ mcp.CallToolRequest, args dryRunFileArgs) (*mcp.CallToolResult, error) {
+	b, err := os.ReadFile(args.Path)
+	if err != nil {
+		return nil, err
+	}
+	return s.dryRunHandler(ctx, mcp.CallToolRequest{}, dryRunArgs{Project: args.Project, SQL: string(b)})
 }
 
 func (s *Server) tablesHandler(ctx context.Context, _ mcp.CallToolRequest, args tablesArgs) (*mcp.CallToolResult, error) {
