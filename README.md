@@ -1,9 +1,11 @@
 # bigquery-mcp-server
 
-This repository provides a minimal Model Context Protocol (MCP) server written in Go. The server exposes two tools backed by Google BigQuery:
+This repository provides a minimal Model Context Protocol (MCP) server written in Go. The server exposes tools backed by Google BigQuery:
 
 - `schema` – returns the schema of a BigQuery table
 - `query` – executes an SQL query and returns the result rows
+- `dryrun` – performs a BigQuery dry run to validate SQL and estimate costs
+- `tables` – lists tables in a BigQuery dataset
 
 ## Requirements
 
