@@ -37,9 +37,10 @@ func (s *Server) MCPServer() *server.MCPServer {
 }
 
 type schemaArgs struct {
-	Project string `json:"project"`
-	Dataset string `json:"dataset"`
-	Table   string `json:"table"`
+	Project        string `json:"project"`
+	DatasetProject string `json:"dataset_project,omitempty"`
+	Dataset        string `json:"dataset"`
+	Table          string `json:"table"`
 }
 
 type queryArgs struct {
@@ -63,8 +64,9 @@ type dryRunFileArgs struct {
 }
 
 type tablesArgs struct {
-	Project string `json:"project"`
-	Dataset string `json:"dataset"`
+	Project        string `json:"project"`
+	DatasetProject string `json:"dataset_project,omitempty"`
+	Dataset        string `json:"dataset"`
 }
 
 func NewServer(provider func(ctx context.Context, project string) (bigquery.Client, error), opts ...Option) *Server {
@@ -82,6 +84,7 @@ func NewServer(provider func(ctx context.Context, project string) (bigquery.Clie
 		"schema",
 		mcp.WithDescription("Get BigQuery table schema"),
 		mcp.WithString("project", mcp.Required()),
+		mcp.WithString("dataset_project"),
 		mcp.WithString("dataset", mcp.Required()),
 		mcp.WithString("table", mcp.Required()),
 	), mcp.NewTypedToolHandler(s.schemaHandler))
@@ -118,6 +121,7 @@ func NewServer(provider func(ctx context.Context, project string) (bigquery.Clie
 		"tables",
 		mcp.WithDescription("List BigQuery tables in a dataset (returns up to 100 entries)"),
 		mcp.WithString("project", mcp.Required()),
+		mcp.WithString("dataset_project"),
 		mcp.WithString("dataset", mcp.Required()),
 	), mcp.NewTypedToolHandler(s.tablesHandler))
 
@@ -134,7 +138,11 @@ func (s *Server) schemaHandler(ctx context.Context, _ mcp.CallToolRequest, args 
 	if err != nil {
 		return nil, err
 	}
-	schema, err := c.GetTableSchema(ctx, args.Dataset, args.Table)
+	dp := args.DatasetProject
+	if dp == "" {
+		dp = args.Project
+	}
+	schema, err := c.GetTableSchema(ctx, dp, args.Dataset, args.Table)
 	if err != nil {
 		return nil, err
 	}
@@ -203,7 +211,11 @@ func (s *Server) tablesHandler(ctx context.Context, _ mcp.CallToolRequest, args 
 	if err != nil {
 		return nil, err
 	}
-	tables, err := c.ListTables(ctx, args.Dataset)
+	dp := args.DatasetProject
+	if dp == "" {
+		dp = args.Project
+	}
+	tables, err := c.ListTables(ctx, dp, args.Dataset)
 	if err != nil {
 		return nil, err
 	}

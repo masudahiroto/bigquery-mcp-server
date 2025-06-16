@@ -14,7 +14,7 @@ type MockClient struct {
 	Err       error
 }
 
-func (m *MockClient) GetTableSchema(ctx context.Context, datasetID, tableID string) ([]*bigquery.FieldSchema, error) {
+func (m *MockClient) GetTableSchema(ctx context.Context, projectID, datasetID, tableID string) ([]*bigquery.FieldSchema, error) {
 	return m.SchemaRes, m.Err
 }
 
@@ -26,6 +26,6 @@ func (m *MockClient) DryRunQuery(ctx context.Context, sql string) (*bigquery.Que
 	return m.DryRunRes, m.Err
 }
 
-func (m *MockClient) ListTables(ctx context.Context, datasetID string) ([]string, error) {
+func (m *MockClient) ListTables(ctx context.Context, projectID, datasetID string) ([]string, error) {
 	return m.TablesRes, m.Err
 }

@@ -9,10 +9,10 @@ import (
 )
 
 type Client interface {
-	GetTableSchema(ctx context.Context, datasetID, tableID string) ([]*bigquery.FieldSchema, error)
+	GetTableSchema(ctx context.Context, projectID, datasetID, tableID string) ([]*bigquery.FieldSchema, error)
 	RunQuery(ctx context.Context, sql string) ([]map[string]bigquery.Value, error)
 	DryRunQuery(ctx context.Context, sql string) (*bigquery.QueryStatistics, error)
-	ListTables(ctx context.Context, datasetID string) ([]string, error)
+	ListTables(ctx context.Context, projectID, datasetID string) ([]string, error)
 }
 
 type realClient struct {
@@ -27,8 +27,8 @@ func NewClient(ctx context.Context, projectID string) (Client, error) {
 	return &realClient{client: c}, nil
 }
 
-func (r *realClient) GetTableSchema(ctx context.Context, datasetID, tableID string) ([]*bigquery.FieldSchema, error) {
-	tbl := r.client.Dataset(datasetID).Table(tableID)
+func (r *realClient) GetTableSchema(ctx context.Context, projectID, datasetID, tableID string) ([]*bigquery.FieldSchema, error) {
+	tbl := r.client.DatasetInProject(projectID, datasetID).Table(tableID)
 	meta, err := tbl.Metadata(ctx)
 	if err != nil {
 		return nil, err
@@ -76,8 +76,8 @@ func (r *realClient) DryRunQuery(ctx context.Context, sql string) (*bigquery.Que
 	return qs, nil
 }
 
-func (r *realClient) ListTables(ctx context.Context, datasetID string) ([]string, error) {
-	it := r.client.Dataset(datasetID).Tables(ctx)
+func (r *realClient) ListTables(ctx context.Context, projectID, datasetID string) ([]string, error) {
+	it := r.client.DatasetInProject(projectID, datasetID).Tables(ctx)
 	var tables []string
 	for {
 		tbl, err := it.Next()
