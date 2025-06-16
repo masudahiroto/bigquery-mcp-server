@@ -62,7 +62,8 @@ To run them locally:
 2. Set the following environment variables to point to a test dataset:
 
    ```bash
-   export BQ_PROJECT=your-project-id
+   export BQ_CLIENT_PROJECT=project-for-query-jobs
+   export BQ_PROJECT=project-with-dataset
    export BQ_DATASET=your_dataset
    export BQ_TABLE=your_table
    export BQ_SQL='SELECT 1 as id'

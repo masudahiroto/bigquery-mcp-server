@@ -22,7 +22,7 @@ import (
 )
 
 func runBigQueryScenario(t *testing.T, ctx context.Context, cli *client.Client,
-	project, dataset, table, sql string) {
+	clientProject, datasetProject, dataset, table, sql string) {
 	initReq := mcp.InitializeRequest{}
 	initReq.Params.ProtocolVersion = mcp.LATEST_PROTOCOL_VERSION
 	initReq.Params.ClientInfo = mcp.Implementation{Name: "e2e-test", Version: "0.1"}
@@ -53,9 +53,10 @@ func runBigQueryScenario(t *testing.T, ctx context.Context, cli *client.Client,
 	schemaReq := mcp.CallToolRequest{}
 	schemaReq.Params.Name = "schema"
 	schemaReq.Params.Arguments = map[string]any{
-		"project": project,
-		"dataset": dataset,
-		"table":   table,
+		"project":         clientProject,
+		"dataset_project": datasetProject,
+		"dataset":         dataset,
+		"table":           table,
 	}
 	schemaRes, err := cli.CallTool(ctx, schemaReq)
 	if err != nil {
@@ -74,7 +75,7 @@ func runBigQueryScenario(t *testing.T, ctx context.Context, cli *client.Client,
 	queryReq := mcp.CallToolRequest{}
 	queryReq.Params.Name = "query"
 	queryReq.Params.Arguments = map[string]any{
-		"project": project,
+		"project": clientProject,
 		"sql":     sql,
 	}
 	queryRes, err := cli.CallTool(ctx, queryReq)
@@ -94,8 +95,9 @@ func runBigQueryScenario(t *testing.T, ctx context.Context, cli *client.Client,
 	tablesReq := mcp.CallToolRequest{}
 	tablesReq.Params.Name = "tables"
 	tablesReq.Params.Arguments = map[string]any{
-		"project": project,
-		"dataset": dataset,
+		"project":         clientProject,
+		"dataset_project": datasetProject,
+		"dataset":         dataset,
 	}
 	tablesRes, err := cli.CallTool(ctx, tablesReq)
 	if err != nil {
@@ -113,13 +115,17 @@ func runBigQueryScenario(t *testing.T, ctx context.Context, cli *client.Client,
 }
 
 func TestBigQueryServer_TLS(t *testing.T) {
-	project := os.Getenv("BQ_PROJECT")
+	clientProject := os.Getenv("BQ_CLIENT_PROJECT")
+	dataProject := os.Getenv("BQ_PROJECT")
 	dataset := os.Getenv("BQ_DATASET")
 	table := os.Getenv("BQ_TABLE")
 	sql := os.Getenv("BQ_SQL")
 
-	if project == "" || dataset == "" || table == "" || sql == "" {
+	if dataProject == "" || dataset == "" || table == "" || sql == "" {
 		t.Skip("BQ_PROJECT, BQ_DATASET, BQ_TABLE and BQ_SQL must be set")
+	}
+	if clientProject == "" {
+		clientProject = dataProject
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
@@ -141,17 +147,21 @@ func TestBigQueryServer_TLS(t *testing.T) {
 		t.Fatalf("start client: %v", err)
 	}
 	defer cli.Close()
-	runBigQueryScenario(t, ctx, cli, project, dataset, table, sql)
+	runBigQueryScenario(t, ctx, cli, clientProject, dataProject, dataset, table, sql)
 }
 
 func TestBigQueryServer_Stdio(t *testing.T) {
-	project := os.Getenv("BQ_PROJECT")
+	clientProject := os.Getenv("BQ_CLIENT_PROJECT")
+	dataProject := os.Getenv("BQ_PROJECT")
 	dataset := os.Getenv("BQ_DATASET")
 	table := os.Getenv("BQ_TABLE")
 	sql := os.Getenv("BQ_SQL")
 
-	if project == "" || dataset == "" || table == "" || sql == "" {
+	if dataProject == "" || dataset == "" || table == "" || sql == "" {
 		t.Skip("BQ_PROJECT, BQ_DATASET, BQ_TABLE and BQ_SQL must be set")
+	}
+	if clientProject == "" {
+		clientProject = dataProject
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
@@ -178,5 +188,5 @@ func TestBigQueryServer_Stdio(t *testing.T) {
 	}
 	defer cli.Close()
 
-	runBigQueryScenario(t, ctx, cli, project, dataset, table, sql)
+	runBigQueryScenario(t, ctx, cli, clientProject, dataProject, dataset, table, sql)
 }

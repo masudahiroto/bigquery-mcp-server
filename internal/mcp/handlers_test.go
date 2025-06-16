@@ -20,7 +20,7 @@ func TestSchemaHandler(t *testing.T) {
 	}
 	srv := NewServer(func(ctx context.Context, project string) (bq.Client, error) { return mock, nil })
 
-	res, err := srv.schemaHandler(context.Background(), mcp.CallToolRequest{}, schemaArgs{Project: "p", Dataset: "d", Table: "t"})
+	res, err := srv.schemaHandler(context.Background(), mcp.CallToolRequest{}, schemaArgs{Project: "p", DatasetProject: "", Dataset: "d", Table: "t"})
 	if err != nil {
 		t.Fatalf("schemaHandler error: %v", err)
 	}
@@ -155,7 +155,7 @@ func TestTablesHandler(t *testing.T) {
 	mock := &bq.MockClient{TablesRes: []string{"t1", "t2"}}
 	srv := NewServer(func(ctx context.Context, project string) (bq.Client, error) { return mock, nil })
 
-	res, err := srv.tablesHandler(context.Background(), mcp.CallToolRequest{}, tablesArgs{Project: "p", Dataset: "d"})
+	res, err := srv.tablesHandler(context.Background(), mcp.CallToolRequest{}, tablesArgs{Project: "p", DatasetProject: "", Dataset: "d"})
 	if err != nil {
 		t.Fatalf("tablesHandler error: %v", err)
 	}
@@ -199,7 +199,7 @@ func TestTablesHandlerRowLimit(t *testing.T) {
 	mock := &bq.MockClient{TablesRes: manyTables}
 	srv := NewServer(func(ctx context.Context, project string) (bq.Client, error) { return mock, nil })
 
-	res, err := srv.tablesHandler(context.Background(), mcp.CallToolRequest{}, tablesArgs{Project: "p", Dataset: "d"})
+	res, err := srv.tablesHandler(context.Background(), mcp.CallToolRequest{}, tablesArgs{Project: "p", DatasetProject: "", Dataset: "d"})
 	if err != nil {
 		t.Fatalf("tablesHandler error: %v", err)
 	}
@@ -218,7 +218,7 @@ func TestTablesHandlerRegexFilter(t *testing.T) {
 	re := regexp.MustCompile("^u.*")
 	srv := NewServer(func(ctx context.Context, project string) (bq.Client, error) { return mock, nil }, WithTableFilter(re))
 
-	res, err := srv.tablesHandler(context.Background(), mcp.CallToolRequest{}, tablesArgs{Project: "p", Dataset: "d"})
+	res, err := srv.tablesHandler(context.Background(), mcp.CallToolRequest{}, tablesArgs{Project: "p", DatasetProject: "", Dataset: "d"})
 	if err != nil {
 		t.Fatalf("tablesHandler error: %v", err)
 	}
