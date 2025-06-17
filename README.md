@@ -43,10 +43,10 @@ go build -o bigquery-mcp-server ./cmd/bigquery-mcp-server
 
 ## Getting Started
 
-Run the server:
+Run the server with your Google Cloud project and BigQuery region:
 
 ```bash
-bigquery-mcp-server
+bigquery-mcp-server -project my-project -region US
 ```
 
 The server listens on `:8080` by default. Use an MCP client to call the registered tools.
@@ -57,8 +57,8 @@ Set the environment variable `MAX_BQ_QUERY_BYTES` to limit how many bytes a quer
 
 ### BigQuery Region
 
-The server reads `BQ_REGION` to set the location for all BigQuery jobs. Specify
-`US`, `EU`, or another region if your dataset is not in the default location.
+Use the `-region` flag to set the location for all BigQuery jobs. Specify `US`,
+`EU`, or another region if your dataset is not in the default location.
 
 ## Testing
 
