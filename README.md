@@ -26,6 +26,21 @@ go install github.com/masudahiroto/bigquery-mcp-server/cmd/bigquery-mcp-server@l
 
 This downloads the module and places the compiled binary in `$(go env GOPATH)/bin`. Ensure this directory is in your `PATH` so the command can be run directly.
 
+### Running from Source
+
+If you've made local changes and want to run the development version without installing it globally, execute from the repository root:
+
+```bash
+go run ./cmd/bigquery-mcp-server
+```
+
+You can also build a binary directly:
+
+```bash
+go build -o bigquery-mcp-server ./cmd/bigquery-mcp-server
+./bigquery-mcp-server
+```
+
 ## Getting Started
 
 Run the server:
