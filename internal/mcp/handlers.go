@@ -20,6 +20,7 @@ type Server struct {
 	mcpServer        *server.MCPServer
 	httpServer       *server.StreamableHTTPServer
 	bqClientProvider func(ctx context.Context, project string) (bigquery.Client, error)
+	clientProject    string
 	tableFilter      *regexp.Regexp
 }
 
@@ -37,45 +38,39 @@ func (s *Server) MCPServer() *server.MCPServer {
 }
 
 type schemaArgs struct {
-	Project        string `json:"project"`
 	DatasetProject string `json:"dataset_project,omitempty"`
 	Dataset        string `json:"dataset"`
 	Table          string `json:"table"`
 }
 
 type queryArgs struct {
-	Project string `json:"project"`
-	SQL     string `json:"sql"`
+	SQL string `json:"sql"`
 }
 
 type dryRunArgs struct {
-	Project string `json:"project"`
-	SQL     string `json:"sql"`
+	SQL string `json:"sql"`
 }
 
 type queryFileArgs struct {
-	Project string `json:"project"`
-	Path    string `json:"path"`
+	Path string `json:"path"`
 }
 
 type dryRunFileArgs struct {
-	Project string `json:"project"`
-	Path    string `json:"path"`
+	Path string `json:"path"`
 }
 
 type tablesArgs struct {
-	Project        string `json:"project"`
 	DatasetProject string `json:"dataset_project,omitempty"`
 	Dataset        string `json:"dataset"`
 }
 
-func NewServer(provider func(ctx context.Context, project string) (bigquery.Client, error), opts ...Option) *Server {
+func NewServer(provider func(ctx context.Context, project string) (bigquery.Client, error), clientProject string, opts ...Option) *Server {
 	mcpSrv := server.NewMCPServer(
 		"bigquery-mcp-server",
 		"1.0.0",
 		server.WithToolCapabilities(true),
 	)
-	s := &Server{mcpServer: mcpSrv, bqClientProvider: provider}
+	s := &Server{mcpServer: mcpSrv, bqClientProvider: provider, clientProject: clientProject}
 	for _, opt := range opts {
 		opt(s)
 	}
@@ -83,7 +78,6 @@ func NewServer(provider func(ctx context.Context, project string) (bigquery.Clie
 	mcpSrv.AddTool(mcp.NewTool(
 		"schema",
 		mcp.WithDescription("Get BigQuery table schema"),
-		mcp.WithString("project", mcp.Required()),
 		mcp.WithString("dataset_project"),
 		mcp.WithString("dataset", mcp.Required()),
 		mcp.WithString("table", mcp.Required()),
@@ -92,35 +86,30 @@ func NewServer(provider func(ctx context.Context, project string) (bigquery.Clie
 	mcpSrv.AddTool(mcp.NewTool(
 		"query",
 		mcp.WithDescription("Execute BigQuery SQL (returns up to 100 rows)"),
-		mcp.WithString("project", mcp.Required()),
 		mcp.WithString("sql", mcp.Required()),
 	), mcp.NewTypedToolHandler(s.queryHandler))
 
 	mcpSrv.AddTool(mcp.NewTool(
 		"queryfile",
 		mcp.WithDescription("Execute BigQuery SQL from file (returns up to 100 rows)"),
-		mcp.WithString("project", mcp.Required()),
 		mcp.WithString("path", mcp.Required()),
 	), mcp.NewTypedToolHandler(s.queryFileHandler))
 
 	mcpSrv.AddTool(mcp.NewTool(
 		"dryrun",
 		mcp.WithDescription("Dry run BigQuery SQL"),
-		mcp.WithString("project", mcp.Required()),
 		mcp.WithString("sql", mcp.Required()),
 	), mcp.NewTypedToolHandler(s.dryRunHandler))
 
 	mcpSrv.AddTool(mcp.NewTool(
 		"dryrunfile",
 		mcp.WithDescription("Dry run BigQuery SQL from file"),
-		mcp.WithString("project", mcp.Required()),
 		mcp.WithString("path", mcp.Required()),
 	), mcp.NewTypedToolHandler(s.dryRunFileHandler))
 
 	mcpSrv.AddTool(mcp.NewTool(
 		"tables",
 		mcp.WithDescription("List BigQuery tables in a dataset (returns up to 100 entries)"),
-		mcp.WithString("project", mcp.Required()),
 		mcp.WithString("dataset_project"),
 		mcp.WithString("dataset", mcp.Required()),
 	), mcp.NewTypedToolHandler(s.tablesHandler))
@@ -134,13 +123,13 @@ func (s *Server) Start(addr string) error {
 }
 
 func (s *Server) schemaHandler(ctx context.Context, _ mcp.CallToolRequest, args schemaArgs) (*mcp.CallToolResult, error) {
-	c, err := s.bqClientProvider(ctx, args.Project)
+	c, err := s.bqClientProvider(ctx, s.clientProject)
 	if err != nil {
 		return nil, err
 	}
 	dp := args.DatasetProject
 	if dp == "" {
-		dp = args.Project
+		dp = s.clientProject
 	}
 	schema, err := c.GetTableSchema(ctx, dp, args.Dataset, args.Table)
 	if err != nil {
@@ -151,7 +140,7 @@ func (s *Server) schemaHandler(ctx context.Context, _ mcp.CallToolRequest, args 
 }
 
 func (s *Server) queryHandler(ctx context.Context, _ mcp.CallToolRequest, args queryArgs) (*mcp.CallToolResult, error) {
-	c, err := s.bqClientProvider(ctx, args.Project)
+	c, err := s.bqClientProvider(ctx, s.clientProject)
 	if err != nil {
 		return nil, err
 	}
@@ -182,11 +171,11 @@ func (s *Server) queryFileHandler(ctx context.Context, _ mcp.CallToolRequest, ar
 	if err != nil {
 		return nil, err
 	}
-	return s.queryHandler(ctx, mcp.CallToolRequest{}, queryArgs{Project: args.Project, SQL: string(b)})
+	return s.queryHandler(ctx, mcp.CallToolRequest{}, queryArgs{SQL: string(b)})
 }
 
 func (s *Server) dryRunHandler(ctx context.Context, _ mcp.CallToolRequest, args dryRunArgs) (*mcp.CallToolResult, error) {
-	c, err := s.bqClientProvider(ctx, args.Project)
+	c, err := s.bqClientProvider(ctx, s.clientProject)
 	if err != nil {
 		return nil, err
 	}
@@ -203,17 +192,17 @@ func (s *Server) dryRunFileHandler(ctx context.Context, _ mcp.CallToolRequest, a
 	if err != nil {
 		return nil, err
 	}
-	return s.dryRunHandler(ctx, mcp.CallToolRequest{}, dryRunArgs{Project: args.Project, SQL: string(b)})
+	return s.dryRunHandler(ctx, mcp.CallToolRequest{}, dryRunArgs{SQL: string(b)})
 }
 
 func (s *Server) tablesHandler(ctx context.Context, _ mcp.CallToolRequest, args tablesArgs) (*mcp.CallToolResult, error) {
-	c, err := s.bqClientProvider(ctx, args.Project)
+	c, err := s.bqClientProvider(ctx, s.clientProject)
 	if err != nil {
 		return nil, err
 	}
 	dp := args.DatasetProject
 	if dp == "" {
-		dp = args.Project
+		dp = s.clientProject
 	}
 	tables, err := c.ListTables(ctx, dp, args.Dataset)
 	if err != nil {

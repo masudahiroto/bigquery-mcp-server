@@ -22,7 +22,7 @@ import (
 )
 
 func runBigQueryScenario(t *testing.T, ctx context.Context, cli *client.Client,
-	clientProject, datasetProject, dataset, table, sql string) {
+	datasetProject, dataset, table, sql string) {
 	initReq := mcp.InitializeRequest{}
 	initReq.Params.ProtocolVersion = mcp.LATEST_PROTOCOL_VERSION
 	initReq.Params.ClientInfo = mcp.Implementation{Name: "e2e-test", Version: "0.1"}
@@ -53,7 +53,6 @@ func runBigQueryScenario(t *testing.T, ctx context.Context, cli *client.Client,
 	schemaReq := mcp.CallToolRequest{}
 	schemaReq.Params.Name = "schema"
 	schemaReq.Params.Arguments = map[string]any{
-		"project":         clientProject,
 		"dataset_project": datasetProject,
 		"dataset":         dataset,
 		"table":           table,
@@ -75,8 +74,7 @@ func runBigQueryScenario(t *testing.T, ctx context.Context, cli *client.Client,
 	queryReq := mcp.CallToolRequest{}
 	queryReq.Params.Name = "query"
 	queryReq.Params.Arguments = map[string]any{
-		"project": clientProject,
-		"sql":     sql,
+		"sql": sql,
 	}
 	queryRes, err := cli.CallTool(ctx, queryReq)
 	if err != nil {
@@ -95,7 +93,6 @@ func runBigQueryScenario(t *testing.T, ctx context.Context, cli *client.Client,
 	tablesReq := mcp.CallToolRequest{}
 	tablesReq.Params.Name = "tables"
 	tablesReq.Params.Arguments = map[string]any{
-		"project":         clientProject,
 		"dataset_project": datasetProject,
 		"dataset":         dataset,
 	}
@@ -134,7 +131,7 @@ func TestBigQueryServer_TLS(t *testing.T) {
 	provider := func(ctx context.Context, project string) (bigquery.Client, error) {
 		return bigquery.NewClient(ctx, project)
 	}
-	srv := internalmcp.NewServer(provider)
+	srv := internalmcp.NewServer(provider, clientProject)
 	httpSrv := mcpserver.NewStreamableHTTPServer(srv.MCPServer())
 
 	ts := httptest.NewTLSServer(httpSrv)
@@ -148,7 +145,7 @@ func TestBigQueryServer_TLS(t *testing.T) {
 		t.Fatalf("start client: %v", err)
 	}
 
-	defer func() {
+  defer func() {
 		cli.Close()
 		time.Sleep(100 * time.Millisecond)
 	}()
@@ -176,7 +173,7 @@ func TestBigQueryServer_Stdio(t *testing.T) {
 	provider := func(ctx context.Context, project string) (bigquery.Client, error) {
 		return bigquery.NewClient(ctx, project)
 	}
-	srv := internalmcp.NewServer(provider)
+	srv := internalmcp.NewServer(provider, clientProject)
 	stdioSrv := mcpserver.NewStdioServer(srv.MCPServer())
 
 	serverReader, clientWriter := io.Pipe()
@@ -194,5 +191,5 @@ func TestBigQueryServer_Stdio(t *testing.T) {
 	}
 	defer cli.Close()
 
-	runBigQueryScenario(t, ctx, cli, clientProject, dataProject, dataset, table, sql)
+	runBigQueryScenario(t, ctx, cli, dataProject, dataset, table, sql)
 }

@@ -26,12 +26,27 @@ go install github.com/masudahiroto/bigquery-mcp-server/cmd/bigquery-mcp-server@l
 
 This downloads the module and places the compiled binary in `$(go env GOPATH)/bin`. Ensure this directory is in your `PATH` so the command can be run directly.
 
-## Getting Started
+### Running from Source
 
-Run the server:
+If you've made local changes and want to run the development version without installing it globally, execute from the repository root:
 
 ```bash
-bigquery-mcp-server
+go run ./cmd/bigquery-mcp-server
+```
+
+You can also build a binary directly:
+
+```bash
+go build -o bigquery-mcp-server ./cmd/bigquery-mcp-server
+./bigquery-mcp-server
+```
+
+## Getting Started
+
+Run the server with your Google Cloud project and BigQuery region:
+
+```bash
+bigquery-mcp-server -project my-project -region US
 ```
 
 The server listens on `:8080` by default. Use an MCP client to call the registered tools.
@@ -42,8 +57,8 @@ Set the environment variable `MAX_BQ_QUERY_BYTES` to limit how many bytes a quer
 
 ### BigQuery Region
 
-The server reads `BQ_REGION` to set the location for all BigQuery jobs. Specify
-`US`, `EU`, or another region if your dataset is not in the default location.
+Use the `-region` flag to set the location for all BigQuery jobs. Specify `US`,
+`EU`, or another region if your dataset is not in the default location.
 
 ## Testing
 
