@@ -40,6 +40,11 @@ The server listens on `:8080` by default. Use an MCP client to call the register
 
 Set the environment variable `MAX_BQ_QUERY_BYTES` to limit how many bytes a query may scan. The `query` tool performs a BigQuery dry run and refuses to execute if the estimated bytes processed exceed this value.
 
+### BigQuery Region
+
+The server reads `BQ_REGION` to set the location for all BigQuery jobs. Specify
+`US`, `EU`, or another region if your dataset is not in the default location.
+
 ## Testing
 
 Run unit tests:
@@ -66,6 +71,7 @@ To run them locally:
    export BQ_PROJECT=project-with-dataset
    export BQ_DATASET=your_dataset
    export BQ_TABLE=your_table
+   export BQ_REGION=US
    export BQ_SQL='SELECT 1 as id'
    ```
 

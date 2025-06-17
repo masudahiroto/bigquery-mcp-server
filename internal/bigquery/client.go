@@ -3,6 +3,7 @@ package bigquery
 import (
 	"context"
 	"errors"
+	"os"
 
 	"cloud.google.com/go/bigquery"
 	"google.golang.org/api/iterator"
@@ -23,6 +24,9 @@ func NewClient(ctx context.Context, projectID string) (Client, error) {
 	c, err := bigquery.NewClient(ctx, projectID)
 	if err != nil {
 		return nil, err
+	}
+	if loc := os.Getenv("BQ_REGION"); loc != "" {
+		c.Location = loc
 	}
 	return &realClient{client: c}, nil
 }
