@@ -150,7 +150,7 @@ func TestBigQueryServer_TLS(t *testing.T) {
 		time.Sleep(100 * time.Millisecond)
 	}()
 
-	runBigQueryScenario(t, ctx, cli, clientProject, dataProject, dataset, table, sql)
+       runBigQueryScenario(t, ctx, cli, dataProject, dataset, table, sql)
 }
 
 func TestBigQueryServer_Stdio(t *testing.T) {
