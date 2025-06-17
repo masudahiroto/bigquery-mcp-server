@@ -145,7 +145,7 @@ func TestBigQueryServer_TLS(t *testing.T) {
 		t.Fatalf("start client: %v", err)
 	}
 
-  defer func() {
+        defer func() {
 		cli.Close()
 		time.Sleep(100 * time.Millisecond)
 	}()
