@@ -133,6 +133,7 @@ func TestBigQueryServer_TLS(t *testing.T) {
 	}
 	srv := internalmcp.NewServer(provider, clientProject)
 	httpSrv := mcpserver.NewStreamableHTTPServer(srv.MCPServer())
+
 	ts := httptest.NewTLSServer(httpSrv)
 	defer ts.Close()
 
@@ -143,8 +144,13 @@ func TestBigQueryServer_TLS(t *testing.T) {
 	if err := cli.Start(ctx); err != nil {
 		t.Fatalf("start client: %v", err)
 	}
-	defer cli.Close()
-	runBigQueryScenario(t, ctx, cli, dataProject, dataset, table, sql)
+
+        defer func() {
+		cli.Close()
+		time.Sleep(100 * time.Millisecond)
+	}()
+
+	runBigQueryScenario(t, ctx, cli, clientProject, dataProject, dataset, table, sql)
 }
 
 func TestBigQueryServer_Stdio(t *testing.T) {
